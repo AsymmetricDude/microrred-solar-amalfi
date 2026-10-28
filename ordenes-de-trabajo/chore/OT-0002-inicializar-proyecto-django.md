@@ -34,7 +34,11 @@ y el comando `verify` del índice corre en verde.
 
 **Qué NO entra:** modelos (OT-0003), URLs del dashboard (OT-0005).
 
-**Alcance ampliado durante la ejecución:** _(vacío)_
+**Alcance ampliado durante la ejecución:**
+- `scripts/verify.sh`: el `verify` de una línea desde la raíz no descubre bien las pruebas
+  (Django las busca desde el directorio actual); un script que entra a `proyecto_energia/` lo
+  resuelve y deja un solo comando.
+- `.python-version` (3.13) para que el intérprete sea reproducible.
 
 ## 4. Diseño / enfoque técnico
 - Layout según ADR-0002. `manage.py` en `proyecto_energia/`; `pyproject` en la raíz.
@@ -43,23 +47,28 @@ y el comando `verify` del índice corre en verde.
 - `ALLOWED_HOSTS` = `["localhost", "127.0.0.1"]` en desarrollo.
 
 ## 5. Plan por fases
-- [ ] **Fase 1 —** Rama; `uv init`, `uv add django`, `uv add --dev ruff`; medir versiones.
-- [ ] **Fase 2 —** `startproject` + 3 × `startapp`; ajustar `settings.py`.
-- [ ] **Fase 3 —** Config de ruff, pruebas humo, `.gitignore` (`.venv/`, `db.sqlite3`, `__pycache__/`).
-- [ ] **Fase 4 —** `verify` en verde; validador; commit `chore(setup): …  Implements OT-0002`.
+- [x] **Fase 1 —** Rama; `uv init`, `uv add django`, `uv add --dev ruff`; medir versiones.
+- [x] **Fase 2 —** `startproject` + 3 × `startapp`; ajustar `settings.py`.
+- [x] **Fase 3 —** Config de ruff, pruebas humo, `.gitignore` (`.venv/`, `db.sqlite3`, `__pycache__/`).
+- [x] **Fase 4 —** `verify` en verde; validador; commit `chore(setup): …  Implements OT-0002`.
 
 ## 6. Criterios de aceptación
-- [ ] `manage.py check` → `System check identified no issues (0 silenced).`
-- [ ] `verify` completo en verde (salida pegada en la bitácora).
-- [ ] `uv.lock` versionado; `.venv` y `db.sqlite3` ignorados.
+- [x] `manage.py check` → `System check identified no issues (0 silenced).`
+- [x] `verify` completo en verde (salida pegada en la bitácora).
+- [x] `uv.lock` versionado; `.venv` y `db.sqlite3` ignorados.
 
 ## 7. Checklist de cumplimiento
 Sin `SECRET_KEY` real en el repo · Django 5.x · Python ≥ 3.11.
 
 ## 8. Riesgos y rollback
-- **Riesgo:** Django 5.2 exige Python ≥ 3.10 — cumplido (3.12.3).
+- **Riesgo:** Django 5.2 exige Python ≥ 3.10 — cumplido (3.13.14, fijado en `.python-version`).
 - **Rollback:** borrar la rama.
 
 ## 9. Bitácora
 | Fecha | SHA | Nota |
 |---|---|---|
+| 2026-10-28 | — | **Medido:** `uv` resolvió Python **3.13.14** (gestionado por uv; el del sistema es 3.12.3) → fijado con `.python-version`. Django **5.2.18**, ruff **0.17.3**. Ambos cumplen `CLAUDE.md` (3.11+, Django 5.x). |
+| 2026-10-28 | — | `settings.py`: `es-co`, `America/Bogota`, `USE_TZ=True`, 3 apps por `AppConfig`, `SECRET_KEY`/`DEBUG` desde entorno con valor de desarrollo fijo y no secreto, `ALLOWED_HOSTS` local. |
+| 2026-10-28 | — | **`verify` en verde:** `All checks passed!` · `37 files already formatted` · `System check identified no issues (0 silenced).` · `No changes detected` · `Ran 4 tests … OK`. |
+| 2026-10-28 | — | **Controles negativos** (`verify` debe fallar): (1) archivo con `import os` sin usar → exit 1 (ruff); (2) modelo sin `__str__` → exit 1 (ruff DJ008); (3) modelo correcto sin migración → `Migrations for 'monitoreo': + Create model Mutante`, exit 1. Restaurado → exit 0. |
+| 2026-10-28 | — | **Validador (subagente, sólo lectura): ⚠️ aprobar con menores.** Reprodujo `verify` (exit 0), versiones, settings, `.gitignore` (`git check-ignore`) y el layout. Menores: (1) §8 decía 3.12.3 → corregido; (2) ADR-0002 no mencionaba la 3.13 de uv → añadido; (3) `models.py`/`admin.py` quedaron sin import tras `ruff --fix` → se reponen en OT-0003; (4) `uv.lock` versionado → se cumple con este commit; (5) docstring de plantilla en `urls.py` → cosmético, se deja. |

@@ -50,21 +50,21 @@ Lead aprueba el diseño de la OT (§4-§5)        → Estado: Por hacer
 - **Evidencia medida, no afirmada:** cada cifra de la bitácora dice de qué comando salió.
 - `verify` (abajo) en verde antes de pedir revisión.
 
-## Comando `verify` (desde la raíz del repo)
+## Comando `verify`
 ```bash
-uv run ruff check . && uv run ruff format --check . \
-  && uv run python proyecto_energia/manage.py check \
-  && uv run python proyecto_energia/manage.py makemigrations --check --dry-run \
-  && uv run python proyecto_energia/manage.py test proyecto_energia
+./scripts/verify.sh
 ```
-(Existe a partir de OT-0002; cada OT lo extiende con sus pruebas.)
+Corre, en orden y fallando en el primero que no pase: `ruff check` · `ruff format --check` ·
+`manage.py check` · `makemigrations --check --dry-run` · `manage.py test`. Cada OT lo extiende
+con sus pruebas. (Las pruebas se descubren desde `proyecto_energia/`, por eso es un script y no
+una línea suelta desde la raíz.)
 
 ## Índice de OT
 
 | OT | Tipo | Título | Depende de | Estado |
 |---|---|---|---|---|
 | [OT-0001](chore/OT-0001-montar-arnes-ligero.md) | chore | Montar el arnés ligero de OT y definir el plan por fases | — | Hecho |
-| [OT-0002](chore/OT-0002-inicializar-proyecto-django.md) | chore | Inicializar entorno uv, proyecto Django y 3 apps | OT-0001 | En curso |
+| [OT-0002](chore/OT-0002-inicializar-proyecto-django.md) | chore | Inicializar entorno uv, proyecto Django y 3 apps | OT-0001 | En revisión |
 | [OT-0003](feat/OT-0003-modelos-y-migraciones.md) | feat | Implementar los 5 modelos y sus migraciones | OT-0002 | Por hacer |
 | [OT-0004](feat/OT-0004-generador-datos-sinteticos.md) | feat | Generador de datos sintéticos `seed_amalfi_data` | OT-0003 | Por hacer |
 | [OT-0005](feat/OT-0005-api-dashboard-data.md) | feat | Vista del dashboard y endpoint `/api/dashboard-data/` | OT-0004 | Por hacer |

@@ -1,0 +1,21 @@
+[project]
+name = "sun-ia"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "django>=5.1,<6",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17.3",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["**/migrations/**"]
+
+[tool.ruff.lint]
+# E/F: errores base · I: orden de imports · B: bugs comunes · UP: sintaxis moderna · DJ: Django
+select = ["E", "F", "I", "B", "UP", "DJ"]

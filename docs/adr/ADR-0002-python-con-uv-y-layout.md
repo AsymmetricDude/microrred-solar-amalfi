@@ -19,6 +19,8 @@ tags: [adr, decision, entorno, estructura]
 
 - **Entorno:** `uv` gestiona `.venv/`, `pyproject.toml` y `uv.lock` en la raíz del repo.
   `requires-python = ">=3.11"`. Todo comando se corre con `uv run`.
+- **Intérprete:** `.python-version` fija **3.13** (medido en OT-0002: uv resolvió 3.13.14, no
+  la 3.12.3 del sistema). Al clonar, `uv sync` descarga esa versión si no está.
 - **Dependencias:** `django>=5.1,<6` en runtime; `ruff` como dependencia de desarrollo.
   Nada más mientras no haga falta (sin numpy/pandas: el generador usa `random` y `math`).
 - **Layout:**
