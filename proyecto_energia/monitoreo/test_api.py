@@ -209,3 +209,19 @@ class VistaDashboardTests(TestCase):
         respuesta = self.client.get(reverse("monitoreo:dashboard"))
         self.assertEqual(respuesta.status_code, 200)
         self.assertContains(respuesta, "Amalfi")
+
+
+class ApiParametrosTests(TestCase):
+    def test_parametros_de_la_ui_salen_de_su_fuente(self):
+        datos = self.client.get(URL, {"dias": 7}).json()  # también con la base vacía
+        self.assertEqual(
+            datos["parametros"],
+            {
+                "potencia_pico_kwp": seed.POTENCIA_PICO_KWP,
+                "capacidad_bateria_kwh": seed.CAPACIDAD_BATERIA_KWH,
+                "perdida_potencia_pct_por_c": 0.4,
+                "error_prediccion_pct": [3.0, 8.0],
+                "umbral_anomalia_pct": 30.0,
+                "umbral_anomalia_kwh": analitica.UMBRAL_DESVIACION_ABSOLUTA_KWH,
+            },
+        )

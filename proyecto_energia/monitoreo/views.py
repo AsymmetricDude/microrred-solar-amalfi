@@ -4,10 +4,20 @@ from django.views.decorators.http import require_GET
 
 from . import services
 
+# (id, título, ícono de Lucide). El orden es el de CLAUDE.md y el de la navegación.
+PESTANAS = [
+    ("resumen", "Resumen general", "layout-dashboard"),
+    ("fotovoltaico", "Monitoreo fotovoltaico", "sun"),
+    ("demanda", "Gestión de demanda", "users"),
+    ("almacenamiento", "Almacenamiento", "battery-charging"),
+    ("analitica", "Analítica e IA", "brain-circuit"),
+    ("financiero", "Financiero", "landmark"),
+]
+
 
 @require_GET
 def dashboard(request):
-    return render(request, "monitoreo/dashboard.html")
+    return render(request, "monitoreo/dashboard.html", {"pestanas": PESTANAS})
 
 
 @require_GET

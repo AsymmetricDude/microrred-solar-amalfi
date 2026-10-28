@@ -161,6 +161,18 @@ def construir_payload(rango: Rango) -> dict:
         "alerta": supuestos.UMBRAL_ALERTA_PCT,
         "optimo": supuestos.UMBRAL_OPTIMO_PCT,
     }
+    # Parámetros que la UI cita en sus textos: se leen de su única fuente, no se copian en JS.
+    payload["parametros"] = {
+        "potencia_pico_kwp": supuestos.POTENCIA_PICO_KWP,
+        "capacidad_bateria_kwh": supuestos.CAPACIDAD_BATERIA_KWH,
+        "perdida_potencia_pct_por_c": _r(-supuestos.COEF_TEMPERATURA_POTENCIA * 100),
+        "error_prediccion_pct": [
+            _r(analitica.ERROR_PREDICCION_MIN * 100),
+            _r(analitica.ERROR_PREDICCION_MAX * 100),
+        ],
+        "umbral_anomalia_pct": _r(analitica.UMBRAL_DESVIACION_RELATIVA * 100),
+        "umbral_anomalia_kwh": analitica.UMBRAL_DESVIACION_ABSOLUTA_KWH,
+    }
     payload["financiero"] = _financiero()
     return payload
 

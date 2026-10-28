@@ -1,14 +1,370 @@
-<!doctype html>
-<html lang="es-CO">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Microrred Solar ZNI · Amalfi</title>
-</head>
-<body>
-  {# Plantilla provisional de OT-0005: la interfaz completa llega en OT-0006. #}
-  <h1>Microrred Solar ZNI — Amalfi, Antioquia</h1>
-  <p>Datos sintéticos — caso de estudio.</p>
-  <p><a href="{% url 'monitoreo:api_dashboard_data' %}?dias=7">Ver datos (JSON, últimos 7 días)</a></p>
-</body>
-</html>
+{% extends "monitoreo/base.html" %}
+{% load static %}
+
+{% block scripts %}<script src="{% static 'monitoreo/dashboard.js' %}"></script>{% endblock %}
+
+{% block cuerpo %}
+<div x-data="dashboard('{% url 'monitoreo:api_dashboard_data' %}')" class="min-h-full">
+
+  {# ── Sidebar (escritorio) ─────────────────────────────────────────────────────────── #}
+  <aside class="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-slate-900 lg:flex">
+    <div class="flex items-center gap-3 px-6 py-6">
+      <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400">
+        <i data-lucide="sun" class="h-5 w-5"></i>
+      </span>
+      <div>
+        <p class="text-sm font-semibold leading-tight text-white">Microrred Solar ZNI</p>
+        <p class="text-xs text-slate-400">Amalfi, Antioquia</p>
+      </div>
+    </div>
+    <nav class="flex-1 space-y-1 px-3" role="tablist" aria-orientation="vertical" aria-label="Módulos del dashboard" @keydown="moverConTeclado($event)">
+      {% for id, titulo, icono in pestanas %}
+      <button type="button" role="tab" id="tab-{{ id }}" aria-controls="panel-{{ id }}" data-pestana="{{ id }}"
+              :aria-selected="pestana === '{{ id }}'" :tabindex="pestana === '{{ id }}' ? 0 : -1" @click="pestana = '{{ id }}'"
+              :class="pestana === '{{ id }}' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'"
+              class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition">
+        <i data-lucide="{{ icono }}" class="h-4 w-4 shrink-0"></i>{{ titulo }}
+      </button>
+      {% endfor %}
+    </nav>
+    <div class="m-3 rounded-lg border border-slate-700/60 p-4 text-xs leading-relaxed text-slate-400">
+      <p class="flex items-center gap-2 font-medium text-amber-300"><i data-lucide="database" class="h-3.5 w-3.5"></i>Datos sintéticos</p>
+      <p class="mt-1">Caso de estudio de trabajo de grado<span x-show="par" x-text="par && `. Planta de ${f.num(par.potencia_pico_kwp, 0)} kWp con banco de baterías de ${f.num(par.capacidad_bateria_kwh, 0)} kWh`"></span>.</p>
+    </div>
+  </aside>
+
+  <div class="lg:pl-64">
+    {# ── Cabecera: título, selector global de rango y navegación móvil ─────────────────── #}
+    <header class="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
+      <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+        <div class="min-w-0">
+          <p class="flex flex-wrap items-center gap-x-2 text-xs font-medium text-slate-500 lg:hidden">
+            <i data-lucide="sun" class="h-3.5 w-3.5 text-emerald-600"></i>Microrred Solar ZNI · Amalfi, Antioquia
+            <span class="rounded bg-amber-50 px-1.5 py-0.5 text-amber-700 ring-1 ring-amber-200">Datos sintéticos</span>
+          </p>
+          <h1 class="truncate text-lg font-semibold text-slate-900" x-text="tituloPestana"></h1>
+          <p class="tabular text-xs text-slate-500" x-show="d && !d.sin_datos" x-cloak>
+            <span x-text="d && f.fechaHora(d.rango.desde)"></span> → <span x-text="d && f.fechaHora(d.rango.hasta)"></span>
+            · <span x-text="d && f.num(d.rango.n_registros, 0)"></span> h
+          </p>
+        </div>
+        <div class="flex items-center gap-3">
+          <span x-show="cargando" x-cloak class="text-slate-400" aria-live="polite">
+            <i data-lucide="refresh-cw" class="h-4 w-4 animate-spin"></i><span class="sr-only">Cargando</span>
+          </span>
+          <div class="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-0.5 text-sm" role="group" aria-label="Rango de fechas">
+            <template x-for="opcion in rangos" :key="opcion.dias">
+              <button type="button" @click="cambiarRango(opcion.dias)" :aria-pressed="dias === opcion.dias"
+                      :class="dias === opcion.dias ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                      class="rounded-md px-3 py-1.5 font-medium transition" x-text="opcion.texto"></button>
+            </template>
+          </div>
+        </div>
+      </div>
+      <nav class="flex gap-1 overflow-x-auto px-4 pb-2 lg:hidden" role="tablist" aria-label="Módulos del dashboard" @keydown="moverConTeclado($event)">
+        {% for id, titulo, icono in pestanas %}
+        <button type="button" role="tab" id="tab-movil-{{ id }}" aria-controls="panel-{{ id }}" data-pestana="{{ id }}"
+                :aria-selected="pestana === '{{ id }}'" :tabindex="pestana === '{{ id }}' ? 0 : -1"
+                @click="pestana = '{{ id }}'"
+                :class="pestana === '{{ id }}' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'"
+                class="flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium">
+          <i data-lucide="{{ icono }}" class="h-3.5 w-3.5"></i>{{ titulo }}
+        </button>
+        {% endfor %}
+      </nav>
+    </header>
+
+    <main class="space-y-6 px-4 py-6 sm:px-6">
+      {# ── Estados de error y base vacía ─────────────────────────────────────────────── #}
+      <div x-show="error" x-cloak class="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
+        <i data-lucide="octagon-alert" class="mt-0.5 h-4 w-4 shrink-0"></i>
+        <div class="flex-1"><p class="font-medium">No se pudieron cargar los datos.</p><p x-text="error"></p></div>
+        <button type="button" @click="cargar()" class="rounded-md bg-white px-3 py-1 font-medium text-red-700 ring-1 ring-red-200 hover:bg-red-100">Reintentar</button>
+      </div>
+      <div x-show="d && d.sin_datos" x-cloak class="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <i data-lucide="database" class="mx-auto h-8 w-8 text-slate-400"></i>
+        <p class="mt-3 font-medium text-slate-900">No hay datos en este rango.</p>
+        <p class="mt-1 text-sm text-slate-500">Siembra la base con <code class="rounded bg-slate-100 px-1.5 py-0.5 text-slate-700">uv run python manage.py seed_amalfi_data</code>.</p>
+      </div>
+      <div x-show="!d && !error" class="rounded-xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">Cargando datos de la microrred…</div>
+
+      <div x-show="d && !d.sin_datos" x-cloak class="space-y-6">
+
+        {# ══ 1. Resumen general ══════════════════════════════════════════════════════ #}
+        <section x-show="pestana === 'resumen'" id="panel-resumen" role="tabpanel" aria-labelledby="tab-resumen" class="space-y-6">
+          <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div class="flex items-center justify-between text-sm text-slate-500">Generación FV <span class="rounded-lg bg-emerald-50 p-1.5 text-emerald-600"><i data-lucide="zap" class="h-4 w-4"></i></span></div>
+              <p class="mt-2 text-2xl font-semibold"><span x-text="k && f.num(k.generacion_kwh, 0)"></span> <span class="text-sm font-normal text-slate-500">kWh</span></p>
+              <p class="mt-1 text-xs text-slate-500">Vertida: <span class="tabular" x-text="k && f.num(k.vertimiento_kwh, 0)"></span> kWh</p>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div class="flex items-center justify-between text-sm text-slate-500">Consumo <span class="rounded-lg bg-indigo-50 p-1.5 text-indigo-600"><i data-lucide="plug-zap" class="h-4 w-4"></i></span></div>
+              <p class="mt-2 text-2xl font-semibold"><span x-text="k && f.num(k.demanda_kwh, 0)"></span> <span class="text-sm font-normal text-slate-500">kWh</span></p>
+              <p class="mt-1 text-xs text-slate-500">No suministrada: <span class="tabular" x-text="k && f.num(k.energia_no_suministrada_kwh, 0)"></span> kWh</p>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div class="flex items-center justify-between text-sm text-slate-500">SoC actual <span class="rounded-lg bg-sky-50 p-1.5 text-sky-600"><i data-lucide="battery-medium" class="h-4 w-4"></i></span></div>
+              <p class="mt-2 text-2xl font-semibold"><span x-text="k && f.num(k.soc_actual, 1)"></span> <span class="text-sm font-normal text-slate-500">%</span></p>
+              <p class="mt-1 text-xs text-slate-500">Autonomía: <span class="tabular" x-text="k && f.num(k.autonomia_horas, 1)"></span> h</p>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div class="flex items-center justify-between text-sm text-slate-500">Ahorro en diésel <span class="rounded-lg bg-emerald-50 p-1.5 text-emerald-600"><i data-lucide="piggy-bank" class="h-4 w-4"></i></span></div>
+              <p class="mt-2 text-2xl font-semibold" x-text="k && f.cop(k.ahorro_cop)"></p>
+              <p class="mt-1 text-xs text-slate-500">Energía servida × costo evitado</p>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:col-span-2 xl:col-span-1">
+              <div class="flex items-center justify-between text-sm text-slate-500">CO₂ evitado <span class="rounded-lg bg-emerald-50 p-1.5 text-emerald-600"><i data-lucide="leaf" class="h-4 w-4"></i></span></div>
+              <p class="mt-2 text-2xl font-semibold"><span x-text="k && f.num(k.co2_evitado_t, 2)"></span> <span class="text-sm font-normal text-slate-500">t</span></p>
+              <p class="mt-1 text-xs text-slate-500">Frente a generar con diésel</p>
+            </div>
+          </div>
+
+          <div class="grid gap-6 lg:grid-cols-3">
+            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 class="text-sm font-semibold text-slate-900">Estado del sistema</h2>
+              <div class="mt-4 flex items-center gap-5">
+                <div class="flex flex-col gap-2 rounded-2xl bg-slate-900 p-2.5" aria-hidden="true">
+                  <span class="h-7 w-7 rounded-full transition" :class="k && k.estado_actual === 'CRITICO' ? 'bg-red-500 ring-4 ring-red-500/30' : 'bg-slate-700'"></span>
+                  <span class="h-7 w-7 rounded-full transition" :class="k && k.estado_actual === 'ALERTA' ? 'bg-amber-400 ring-4 ring-amber-400/30' : 'bg-slate-700'"></span>
+                  <span class="h-7 w-7 rounded-full transition" :class="k && k.estado_actual === 'OPTIMO' ? 'bg-emerald-500 ring-4 ring-emerald-500/30' : 'bg-slate-700'"></span>
+                </div>
+                <div>
+                  <p class="flex items-center gap-2 text-xl font-semibold" :class="estadoActual.clase">
+                    {# Lucide reemplaza cada <i> por un <svg>: el x-show va en un contenedor que no se reemplaza. #}
+                    <span x-show="k && k.estado_actual === 'OPTIMO'"><i data-lucide="circle-check" class="h-5 w-5"></i></span>
+                    <span x-show="k && k.estado_actual === 'ALERTA'"><i data-lucide="triangle-alert" class="h-5 w-5"></i></span>
+                    <span x-show="k && k.estado_actual === 'CRITICO'"><i data-lucide="octagon-alert" class="h-5 w-5"></i></span>
+                    <span x-text="estadoActual.texto"></span>
+                  </p>
+                  <p class="mt-1 text-sm text-slate-500" x-text="estadoActual.detalle"></p>
+                </div>
+              </div>
+              <p class="mt-6 text-xs font-medium text-slate-500">Horas por estado en el rango</p>
+              <div class="mt-2 flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-slate-100">
+                <template x-for="e in distribucionEstados" :key="e.clave">
+                  <div :class="e.barra" :style="`width: ${e.pct}%`"></div>
+                </template>
+              </div>
+              <ul class="mt-3 space-y-1.5 text-sm">
+                <template x-for="e in distribucionEstados" :key="e.clave">
+                  <li class="flex items-center justify-between">
+                    <span class="flex items-center gap-2 text-slate-600"><span class="h-2.5 w-2.5 rounded-full" :class="e.barra"></span><span x-text="e.texto"></span></span>
+                    <span class="tabular text-slate-900"><span x-text="e.horas"></span> h · <span x-text="f.num(e.pct, 0)"></span> %</span>
+                  </li>
+                </template>
+              </ul>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
+              <h2 class="text-sm font-semibold text-slate-900">Balance energético</h2>
+              <p class="text-xs text-slate-500">Generación y demanda horarias (kWh) con el estado de carga de la batería (% · eje derecho).</p>
+              <div class="relative mt-4 h-72"><canvas id="g-balance" role="img" aria-label="Generación, demanda y estado de carga por hora"></canvas></div>
+            </div>
+          </div>
+        </section>
+
+        {# ══ 2. Monitoreo fotovoltaico ═══════════════════════════════════════════════ #}
+        <section x-show="pestana === 'fotovoltaico'" x-cloak id="panel-fotovoltaico" role="tabpanel" aria-labelledby="tab-fotovoltaico" class="space-y-6">
+          <div class="grid gap-4 sm:grid-cols-3">
+            <template x-for="m in resumenFv" :key="m.titulo">
+              <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <p class="text-sm text-slate-500" x-text="m.titulo"></p>
+                <p class="mt-2 text-2xl font-semibold"><span x-text="m.valor"></span> <span class="text-sm font-normal text-slate-500" x-text="m.unidad"></span></p>
+                <p class="mt-1 text-xs text-slate-500" x-text="m.detalle"></p>
+              </div>
+            </template>
+          </div>
+          <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 class="text-sm font-semibold text-slate-900">Generación FV vs. irradiancia</h2>
+            <p class="text-xs text-slate-500">Barras: generación horaria (kWh). Línea: irradiancia (W/m² · eje derecho). Planta de <span x-text="par && f.num(par.potencia_pico_kwp, 0)"></span> kWp.</p>
+            <div class="relative mt-4 h-80"><canvas id="g-fv" role="img" aria-label="Generación fotovoltaica e irradiancia por hora"></canvas></div>
+          </div>
+          <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 class="text-sm font-semibold text-slate-900">Temperatura del panel vs. ambiente</h2>
+            <p class="text-xs text-slate-500">El panel se calienta con la irradiancia; cada °C sobre 25 °C reduce su potencia un <span x-text="par && f.num(par.perdida_potencia_pct_por_c, 1)"></span> %. Línea continua: panel; discontinua: ambiente.</p>
+            <div class="relative mt-4 h-72"><canvas id="g-temperaturas" role="img" aria-label="Temperatura del panel y temperatura ambiente por hora"></canvas></div>
+          </div>
+        </section>
+
+        {# ══ 3. Gestión de demanda ═══════════════════════════════════════════════════ #}
+        <section x-show="pestana === 'demanda'" x-cloak id="panel-demanda" role="tabpanel" aria-labelledby="tab-demanda" class="space-y-6">
+          <div class="grid gap-4 sm:grid-cols-3">
+            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div class="flex items-center justify-between text-sm text-slate-500">Demanda pico <span class="rounded-lg bg-indigo-50 p-1.5 text-indigo-600"><i data-lucide="activity" class="h-4 w-4"></i></span></div>
+              <p class="mt-2 text-2xl font-semibold"><span x-text="k && f.num(k.demanda_pico_kwh, 1)"></span> <span class="text-sm font-normal text-slate-500">kW</span></p>
+              <p class="mt-1 text-xs text-slate-500">Media de la hora pico · <span x-text="k && f.fechaHora(k.demanda_pico_ts)"></span></p>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div class="flex items-center justify-between text-sm text-slate-500">Consumo del rango <span class="rounded-lg bg-indigo-50 p-1.5 text-indigo-600"><i data-lucide="plug-zap" class="h-4 w-4"></i></span></div>
+              <p class="mt-2 text-2xl font-semibold"><span x-text="k && f.num(k.demanda_kwh, 0)"></span> <span class="text-sm font-normal text-slate-500">kWh</span></p>
+              <p class="mt-1 text-xs text-slate-500">Media diaria: <span class="tabular" x-text="k && f.num(k.demanda_kwh / (d.rango.n_registros / 24), 1)"></span> kWh</p>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div class="flex items-center justify-between text-sm text-slate-500">Segmento principal <span class="rounded-lg bg-indigo-50 p-1.5 text-indigo-600"><i data-lucide="users" class="h-4 w-4"></i></span></div>
+              <p class="mt-2 text-2xl font-semibold" x-text="segmentos[0] && segmentos[0].texto"></p>
+              <p class="mt-1 text-xs text-slate-500"><span x-text="segmentos[0] && f.num(segmentos[0].pct, 1)"></span> % del consumo</p>
+            </div>
+          </div>
+          <div class="grid gap-6 xl:grid-cols-3">
+            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
+              <h2 class="text-sm font-semibold text-slate-900">Curva de carga por tipo de usuario</h2>
+              <p class="text-xs text-slate-500">Consumo horario apilado (kWh): la altura total es la demanda de la comunidad.</p>
+              <div class="relative mt-4 h-80"><canvas id="g-carga" role="img" aria-label="Curva de carga apilada por segmento"></canvas></div>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 class="text-sm font-semibold text-slate-900">Participación por sector</h2>
+              <div class="relative mx-auto mt-4 h-48 max-w-[12rem]"><canvas id="g-participacion" role="img" aria-label="Participación de cada segmento en el consumo"></canvas></div>
+              <ul class="mt-5 space-y-2 text-sm">
+                <template x-for="s in segmentos" :key="s.clave">
+                  <li class="flex items-center justify-between gap-3">
+                    <span class="flex items-center gap-2 text-slate-600"><span class="h-2.5 w-2.5 shrink-0 rounded-sm" :style="`background:${s.color}`"></span><span x-text="s.texto"></span></span>
+                    <span class="tabular text-right text-slate-900"><span x-text="f.num(s.kwh, 0)"></span> kWh · <span class="font-medium" x-text="f.num(s.pct, 1)"></span> %</span>
+                  </li>
+                </template>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        {# ══ 4. Almacenamiento ═══════════════════════════════════════════════════════ #}
+        <section x-show="pestana === 'almacenamiento'" x-cloak id="panel-almacenamiento" role="tabpanel" aria-labelledby="tab-almacenamiento" class="space-y-6">
+          <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div class="flex items-center justify-between text-sm text-slate-500">Autonomía restante <span class="rounded-lg bg-sky-50 p-1.5 text-sky-600"><i data-lucide="hourglass" class="h-4 w-4"></i></span></div>
+              <p class="mt-2 text-3xl font-semibold"><span x-text="k && f.num(k.autonomia_horas, 1)"></span> <span class="text-sm font-normal text-slate-500">horas</span></p>
+              <p class="mt-1 text-xs text-slate-500">Con la demanda media de las últimas 24 h</p>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div class="flex items-center justify-between text-sm text-slate-500">Estado de carga <span class="rounded-lg bg-sky-50 p-1.5 text-sky-600"><i data-lucide="battery-medium" class="h-4 w-4"></i></span></div>
+              <p class="mt-2 text-3xl font-semibold"><span x-text="k && f.num(k.soc_actual, 1)"></span> <span class="text-sm font-normal text-slate-500">%</span></p>
+              <p class="mt-1 text-xs" :class="estadoActual.clase" x-text="estadoActual.texto"></p>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div class="flex items-center justify-between text-sm text-slate-500">Potencia actual <span class="rounded-lg bg-sky-50 p-1.5 text-sky-600"><i data-lucide="gauge" class="h-4 w-4"></i></span></div>
+              <p class="mt-2 text-3xl font-semibold"><span x-text="k && f.num(Math.abs(k.potencia_bateria_actual_kw), 1)"></span> <span class="text-sm font-normal text-slate-500">kW</span></p>
+              <p class="mt-1 text-xs text-slate-500" x-text="k && (k.potencia_bateria_actual_kw > 0 ? 'Cargando' : k.potencia_bateria_actual_kw < 0 ? 'Descargando' : 'En reposo')"></p>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div class="flex items-center justify-between text-sm text-slate-500">Horas en estado crítico <span class="rounded-lg bg-red-50 p-1.5 text-red-600"><i data-lucide="octagon-alert" class="h-4 w-4"></i></span></div>
+              <p class="mt-2 text-3xl font-semibold"><span x-text="d && d.estados.CRITICO"></span> <span class="text-sm font-normal text-slate-500">h</span></p>
+              <p class="mt-1 text-xs text-slate-500">SoC por debajo de <span x-text="d && d.umbrales_soc.alerta"></span> %</p>
+            </div>
+          </div>
+          <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 class="text-sm font-semibold text-slate-900">Estado de carga (SoC)</h2>
+            <p class="text-xs text-slate-500">Bandas: óptimo ≥ <span x-text="d && d.umbrales_soc.optimo"></span> % · alerta <span x-text="d && d.umbrales_soc.alerta"></span>–<span x-text="d && d.umbrales_soc.optimo"></span> % · crítico &lt; <span x-text="d && d.umbrales_soc.alerta"></span> %. La línea discontinua es la reserva mínima de <span x-text="d && d.umbrales_soc.minimo"></span> %.</p>
+            <div class="relative mt-4 h-72"><canvas id="g-soc" role="img" aria-label="Estado de carga de la batería con bandas de umbral"></canvas></div>
+          </div>
+          <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 class="text-sm font-semibold text-slate-900">Potencia de carga y descarga</h2>
+            <p class="text-xs text-slate-500">Positivo: la batería absorbe excedente solar. Negativo: entrega energía a la comunidad (kW).</p>
+            <div class="relative mt-4 h-64"><canvas id="g-potencia" role="img" aria-label="Potencia de carga y descarga de la batería por hora"></canvas></div>
+          </div>
+        </section>
+
+        {# ══ 5. Analítica e IA ═══════════════════════════════════════════════════════ #}
+        <section x-show="pestana === 'analitica'" x-cloak id="panel-analitica" role="tabpanel" aria-labelledby="tab-analitica" class="space-y-6">
+          <div class="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
+            <i data-lucide="info" class="mt-0.5 h-4 w-4 shrink-0 text-slate-400"></i>
+            <p x-show="par">Las predicciones son simuladas (valor esperado ± <span x-text="par && f.num(par.error_prediccion_pct[0], 0)"></span>–<span x-text="par && f.num(par.error_prediccion_pct[1], 0)"></span> %) con el mismo esquema que usará el modelo entrenado. Una hora es anómala si se desvía más del <span x-text="par && f.num(par.umbral_anomalia_pct, 0)"></span> % y más de <span x-text="par && f.num(par.umbral_anomalia_kwh, 0)"></span> kWh de lo predicho.</p>
+          </div>
+          <div class="grid gap-4 md:grid-cols-2">
+            <template x-for="m in metricas" :key="m.titulo">
+              <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <p class="text-sm font-semibold text-slate-900" x-text="m.titulo"></p>
+                <p class="text-xs text-slate-500" x-text="m.detalle"></p>
+                <dl class="mt-4 grid grid-cols-3 gap-4">
+                  <div><dt class="text-xs text-slate-500">MAE</dt><dd class="tabular mt-1 text-xl font-semibold"><span x-text="f.num(m.mae, 2)"></span> <span class="text-xs font-normal text-slate-500">kWh</span></dd></div>
+                  <div><dt class="text-xs text-slate-500">RMSE</dt><dd class="tabular mt-1 text-xl font-semibold"><span x-text="f.num(m.rmse, 2)"></span> <span class="text-xs font-normal text-slate-500">kWh</span></dd></div>
+                  <div><dt class="text-xs text-slate-500">R²</dt><dd class="tabular mt-1 text-xl font-semibold" x-text="f.num(m.r2, 3)"></dd></div>
+                </dl>
+              </div>
+            </template>
+          </div>
+          <div class="grid gap-6 xl:grid-cols-2">
+            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 class="text-sm font-semibold text-slate-900">Generación: real vs. predicción ML</h2>
+              <p class="text-xs text-slate-500">Puntos rojos: anomalías de generación detectadas.</p>
+              <div class="relative mt-4 h-72"><canvas id="g-pred-generacion" role="img" aria-label="Generación real frente a la predicha"></canvas></div>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 class="text-sm font-semibold text-slate-900">Demanda: real vs. predicción ML</h2>
+              <p class="text-xs text-slate-500">Puntos rojos: anomalías de consumo detectadas.</p>
+              <div class="relative mt-4 h-72"><canvas id="g-pred-demanda" role="img" aria-label="Demanda real frente a la predicha"></canvas></div>
+            </div>
+          </div>
+          <div class="rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+              <h2 class="flex items-center gap-2 text-sm font-semibold text-slate-900"><i data-lucide="triangle-alert" class="h-4 w-4 text-red-600"></i>Anomalías detectadas</h2>
+              <span class="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700" x-text="anomalias.length + (anomalias.length === 1 ? ' evento' : ' eventos')"></span>
+            </div>
+            <p x-show="!anomalias.length" class="px-5 py-8 text-center text-sm text-slate-500">Sin anomalías en el rango seleccionado.</p>
+            <div x-show="anomalias.length" class="overflow-x-auto">
+              <table class="min-w-full text-sm">
+                <thead class="bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <tr><th class="px-5 py-3">Fecha</th><th class="px-3 py-3">Hora</th><th class="px-3 py-3">Tipo</th><th class="px-3 py-3 text-right">Real</th><th class="px-3 py-3 text-right">Predicho</th><th class="px-3 py-3 text-right">Desviación</th><th class="px-5 py-3">Diagnóstico</th></tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <template x-for="a in anomalias" :key="a.timestamp">
+                    <tr class="align-top">
+                      <td class="tabular whitespace-nowrap px-5 py-3 text-slate-900" x-text="f.fecha(a.timestamp)"></td>
+                      <td class="tabular px-3 py-3 text-slate-900" x-text="f.hora(a.timestamp)"></td>
+                      <td class="px-3 py-3"><span class="whitespace-nowrap rounded-md bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 ring-1 ring-red-200" x-text="f.tipoAnomalia(a.tipo)"></span></td>
+                      <td class="tabular whitespace-nowrap px-3 py-3 text-right" x-text="f.num(a.real_kwh, 1) + ' kWh'"></td>
+                      <td class="tabular whitespace-nowrap px-3 py-3 text-right text-slate-500" x-text="f.num(a.predicho_kwh, 1) + ' kWh'"></td>
+                      <td class="tabular whitespace-nowrap px-3 py-3 text-right font-medium text-red-700" x-text="f.signo(a.desviacion_pct) + ' %'"></td>
+                      <td class="min-w-[18rem] px-5 py-3 text-slate-600" x-text="a.descripcion"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        {# ══ 6. Financiero ═══════════════════════════════════════════════════════════ #}
+        <section x-show="pestana === 'financiero'" x-cloak id="panel-financiero" role="tabpanel" aria-labelledby="tab-financiero" class="space-y-6">
+          <p class="text-sm text-slate-500">Indicadores del caso de estudio a <span x-text="fin && fin.flujo.length - 1"></span> años, con tasa de descuento del <span x-text="fin && f.num(fin.tasa_descuento_pct, 0)"></span> % E.A. No dependen del rango de fechas.</p>
+          <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <template x-for="t in tarjetasFinancieras" :key="t.titulo">
+              <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="flex items-center justify-between text-sm text-slate-500"><span x-text="t.titulo"></span><span class="rounded-lg p-1.5" :class="t.fondo"><i :data-lucide="t.icono" class="h-4 w-4"></i></span></div>
+                <p class="mt-2 text-2xl font-semibold" :title="t.completo" x-text="t.valor"></p>
+                <p class="mt-1 text-xs text-slate-500" x-text="t.detalle"></p>
+              </div>
+            </template>
+          </div>
+          <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 class="text-sm font-semibold text-slate-900">Flujo de caja proyectado</h2>
+                <p class="text-xs text-slate-500">Barras: flujo neto anual. Línea: flujo acumulado (millones de COP). La marca vertical es el punto de retorno de la inversión.</p>
+              </div>
+              <button type="button" @click="verTablaFlujo = !verTablaFlujo" class="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50" x-text="verTablaFlujo ? 'Ocultar tabla' : 'Ver tabla'"></button>
+            </div>
+            <div class="relative mt-4 h-80"><canvas id="g-flujo" role="img" aria-label="Flujo de caja neto y acumulado a 25 años"></canvas></div>
+            <div x-show="verTablaFlujo" x-cloak class="mt-6 max-h-96 overflow-auto rounded-lg border border-slate-200">
+              <table class="min-w-full text-sm">
+                <thead class="sticky top-0 bg-slate-50 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <tr><th class="px-4 py-2 text-left">Año</th><th class="px-4 py-2">Ahorro diésel</th><th class="px-4 py-2">O&amp;M</th><th class="px-4 py-2">Flujo neto</th><th class="px-4 py-2">Acumulado</th></tr>
+                </thead>
+                <tbody class="tabular divide-y divide-slate-100 text-right">
+                  <template x-for="fila in (fin ? fin.flujo : [])" :key="fila.anio">
+                    <tr>
+                      <td class="px-4 py-2 text-left" x-text="fila.anio"></td>
+                      <td class="px-4 py-2" x-text="f.cop(fila.ingresos_ahorro_cop)"></td>
+                      <td class="px-4 py-2" x-text="f.cop(fila.costos_om_cop)"></td>
+                      <td class="px-4 py-2" x-text="f.cop(fila.flujo_neto_cop)"></td>
+                      <td class="px-4 py-2" :class="fila.flujo_acumulado_cop < 0 ? 'text-slate-500' : 'text-emerald-700'" x-text="f.cop(fila.flujo_acumulado_cop)"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+{% endblock %}

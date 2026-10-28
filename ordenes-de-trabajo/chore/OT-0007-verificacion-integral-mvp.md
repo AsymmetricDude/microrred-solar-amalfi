@@ -44,6 +44,10 @@ navegador, con la evidencia anotada.
   para que cualquier otro aviso o error sí cuente.
 - **Control negativo:** el script debe **fallar** si se inyecta un error de JS a propósito;
   si no falla, no está midiendo nada (bóveda: *Framework_Evidencia_Medida_vs_Afirmada*).
+- **Playwright y Chromium ya están instalados** (adelantados en OT-0006): en este WSL Chromium
+  necesita `LD_LIBRARY_PATH=~/.cache/sun-ia-chromium-deps/root/usr/lib/x86_64-linux-gnu`
+  (librerías extraídas sin `sudo`); el script y el README deben resolverlo, o documentar
+  `sudo uv run playwright install-deps` como alternativa.
 - Si Chromium no puede correr en este WSL, plan B: el lead abre el dashboard en Windows
   (`http://localhost:8000`) con DevTools y se anota su resultado.
 
