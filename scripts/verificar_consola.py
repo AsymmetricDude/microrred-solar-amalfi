@@ -6,8 +6,11 @@ móvil, y termina con código 1 si aparece cualquiera de estos:
 - `console.error` o `console.warning`, `pageerror`, petición fallida o respuesta HTTP ≥ 400;
 - menos de 6 pestañas o de 3 rangos (CLAUDE.md: 6 módulos; 24 h, 7 y 30 días);
 - un gráfico visible sin valores, o con un número de puntos distinto al del rango;
-- un valor vacío en pantalla («—», «NaN», «undefined»);
-- scroll horizontal de la página.
+- un valor vacío en pantalla («—», «NaN», «undefined») o restos de plantilla sin renderizar
+  («{#», «#}», «{{», «{%») en cualquier parte del texto visible;
+- scroll horizontal de la página;
+- con `--offline`, cualquier petición a un host que no sea el servidor local (se bloquea: así se
+  comprueba que el dashboard funciona sin internet, como en una ZNI).
 
 Única excepción: el aviso del Play CDN de Tailwind, aceptado por el lead (2026-10-28). Se filtra
 por su texto exacto, no por nivel, para que cualquier otro aviso sí cuente.
@@ -15,6 +18,7 @@ por su texto exacto, no por nivel, para que cualquier otro aviso sí cuente.
     uv run python scripts/verificar_consola.py                     # levanta su propio servidor
     uv run python scripts/verificar_consola.py --url http://127.0.0.1:8000/
     uv run python scripts/verificar_consola.py --capturas /tmp/capturas
+    uv run python scripts/verificar_consola.py --offline           # sin internet (OT-0008)
     uv run python scripts/verificar_consola.py --control-negativo  # debe FALLAR
 
 Se corre desde la raíz del repositorio.
@@ -34,6 +38,7 @@ import time
 import urllib.request
 from contextlib import contextmanager
 from pathlib import Path
+from urllib.parse import urlparse
 
 from playwright.sync_api import sync_playwright
 
@@ -47,6 +52,9 @@ GRAFICOS_SIN_RANGO = {"g-flujo", "g-participacion"}
 PESTANAS_ESPERADAS = 6
 RANGOS_ESPERADOS = 3
 VALORES_VACIOS = ("—", "NaN", "undefined")
+# Un {# … #} de varias líneas se imprime como texto (OT-0008, fuera de los paneles).
+RESTOS_DE_PLANTILLA = ("{#", "#}", "{{", "{%")
+HOSTS_LOCALES = {"127.0.0.1", "localhost"}
 ESPERA_SERVIDOR_S = 30
 TIEMPO_MAXIMO_MS = 15_000
 
@@ -139,9 +147,18 @@ def vaciar_respuesta(ruta):
     ruta.fulfill(response=respuesta, json=datos)
 
 
-def recorrer(navegador, url: str, nombre: str, tamano, capturas: Path | None, control: bool):
+def recorrer(
+    navegador,
+    url: str,
+    nombre: str,
+    tamano,
+    capturas: Path | None,
+    control: bool,
+    offline: bool = False,
+):
     """Devuelve la lista de problemas encontrados en una ventana."""
     problemas = []
+    bloqueadas = set()
     pagina = navegador.new_page(viewport={"width": tamano[0], "height": tamano[1]})
     pagina.set_default_timeout(TIEMPO_MAXIMO_MS)
 
@@ -151,7 +168,25 @@ def recorrer(navegador, url: str, nombre: str, tamano, capturas: Path | None, co
 
     pagina.on("console", en_consola)
     pagina.on("pageerror", lambda e: problemas.append(f"pageerror: {e}"))
-    pagina.on("requestfailed", lambda r: problemas.append(f"requestfailed: {r.url} {r.failure}"))
+    pagina.on(
+        "requestfailed",
+        lambda r: (
+            r.url not in bloqueadas and problemas.append(f"requestfailed: {r.url} {r.failure}")
+        ),
+    )
+
+    if offline:
+        # Se registra antes que la ruta del control negativo: Playwright prueba las rutas de la
+        # última a la primera, así que la de la API (local) sigue funcionando.
+        def sin_internet(ruta):
+            if urlparse(ruta.request.url).hostname in HOSTS_LOCALES | {urlparse(url).hostname}:
+                ruta.continue_()
+                return
+            bloqueadas.add(ruta.request.url)
+            problemas.append(f"petición externa bloqueada: {ruta.request.url}")
+            ruta.abort("internetdisconnected")
+
+        pagina.route("**/*", sin_internet)
     pagina.on(
         "response",
         lambda r: r.status >= 400 and problemas.append(f"HTTP {r.status}: {r.url}"),
@@ -165,11 +200,21 @@ def recorrer(navegador, url: str, nombre: str, tamano, capturas: Path | None, co
             " fetch('/no-existe-control-negativo');"
             " throw new Error('control negativo: error'); }));"
         )
+        if offline:
+            # Sin internet, una petición externa también tiene que aparecer.
+            pagina.add_init_script(
+                "addEventListener('load', () => fetch('https://example.com/control-negativo')"
+                ".catch(() => {}));"
+            )
         # …y la API devuelve los KPIs y las series vacíos: el dashboard «carga» pero no muestra
         # nada. Debe aparecer como «sin valores» y «valor vacío».
         pagina.route("**/api/dashboard-data/**", vaciar_respuesta)
 
     pagina.goto(url, wait_until="networkidle")
+    texto_pagina = pagina.evaluate("() => document.body.innerText")
+    for resto in RESTOS_DE_PLANTILLA:
+        if resto in texto_pagina:
+            problemas.append(f"resto de plantilla «{resto}» visible en la página")
     pestanas = pagina.locator("[role=tab][data-pestana]").locator("visible=true")
     ids = [pestanas.nth(i).get_attribute("data-pestana") for i in range(pestanas.count())]
     rangos = pagina.get_by_role("group", name="Rango de fechas").get_by_role("button")
@@ -218,19 +263,31 @@ def main() -> int:
     parser.add_argument("--url", help="Dashboard ya levantado; si se omite, se levanta uno.")
     parser.add_argument("--capturas", type=Path, help="Carpeta donde guardar capturas.")
     parser.add_argument("--control-negativo", action="store_true", help="Inyecta un error de JS.")
+    parser.add_argument(
+        "--offline", action="store_true", help="Bloquea toda petición que no sea al servidor local."
+    )
     args = parser.parse_args()
     if args.capturas:
         args.capturas.mkdir(parents=True, exist_ok=True)
 
     with servidor_propio() if not args.url else _ya_levantado(args.url) as url:
         comprobar_datos(url)
-        print(f"Verificando {url}")
+        print(
+            f"Verificando {url}"
+            + (" sin internet (peticiones externas bloqueadas)" if args.offline else "")
+        )
         problemas = []
         with sync_playwright() as p:
             navegador = p.chromium.launch(env=entorno_chromium())
             for nombre, tamano in VENTANAS.items():
                 problemas += recorrer(
-                    navegador, url, nombre, tamano, args.capturas, args.control_negativo
+                    navegador,
+                    url,
+                    nombre,
+                    tamano,
+                    args.capturas,
+                    args.control_negativo,
+                    args.offline,
                 )
             navegador.close()
 

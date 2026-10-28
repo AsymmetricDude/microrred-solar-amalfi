@@ -1,0 +1,53 @@
+{
+  "$comment": "Librerías de terceros servidas localmente para operar sin internet (OT-0008). monitoreo/test_vendor.py recalcula cada sha256: un archivo cambiado a mano falla. Para actualizar una versión: descargar desde 'origen', nueva carpeta de versión, nuevo sha256. Cada 'origen' es un archivo real del paquete publicado: no se usan los .min.js que el CDN genera al vuelo, que no garantizan un hash estable.",
+  "archivos": {
+    "tailwindcss/3.4.16/tailwindcss.js": {
+      "version": "3.4.16",
+      "origen": "https://cdn.tailwindcss.com/3.4.16",
+      "licencia": "MIT",
+      "texto_licencia": "licencias/tailwindcss.txt",
+      "sha256": "3f81aa7f6ecdb1acc14c202e513dfee00b6c7703cd81ce1be25bf5215a92e8cb",
+      "bytes": 451131
+    },
+    "chartjs/4.4.7/chart.umd.js": {
+      "version": "4.4.7",
+      "origen": "https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.js",
+      "licencia": "MIT",
+      "texto_licencia": "licencias/chartjs.txt",
+      "sha256": "2812cb8825fdc57469eb2f7bb055e9429244e599920511ee477e828499b632cb",
+      "bytes": 205615
+    },
+    "alpinejs/3.14.8/cdn.min.js": {
+      "version": "3.14.8",
+      "origen": "https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js",
+      "licencia": "MIT",
+      "texto_licencia": "licencias/alpinejs.txt",
+      "sha256": "b600e363d99d95444db54acbfb2deffec9ae792aa99a09229bcda078e5b55643",
+      "bytes": 44758
+    },
+    "lucide/0.469.0/lucide.min.js": {
+      "version": "0.469.0",
+      "origen": "https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js",
+      "licencia": "ISC",
+      "texto_licencia": "licencias/lucide.txt",
+      "sha256": "5de4fffddc1b41ad1226d5e986fcc552adb8ad9efd1566e71dfdcdb664f9a6c2",
+      "bytes": 358106
+    },
+    "inter/5.3.0/inter-latin-wght-normal.woff2": {
+      "version": "5.3.0",
+      "origen": "https://cdn.jsdelivr.net/npm/@fontsource-variable/inter@5.3.0/files/inter-latin-wght-normal.woff2",
+      "licencia": "OFL-1.1",
+      "texto_licencia": "licencias/inter.txt",
+      "sha256": "3100e775e8616cd2611beecfa23a4263d7037586789b43f035236a2e6fbd4c62",
+      "bytes": 48256
+    },
+    "inter/5.3.0/inter.css": {
+      "version": "5.3.0",
+      "origen": "escrito a mano a partir de @fontsource-variable/inter@5.3.0/index.css (bloque latin)",
+      "licencia": "OFL-1.1",
+      "texto_licencia": "licencias/inter.txt",
+      "sha256": "32e97dd8031c38b9a4169642cfe918def0fb1a515569f05b7c3847b204d936c7",
+      "bytes": 585
+    }
+  }
+}

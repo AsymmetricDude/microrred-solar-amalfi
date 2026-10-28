@@ -26,26 +26,31 @@ uv run python manage.py runserver
 
 Abre <http://127.0.0.1:8000/>. El dashboard tiene seis pestañas (Resumen general, Monitoreo
 fotovoltaico, Gestión de demanda, Almacenamiento, Analítica e IA, Financiero) y un selector de
-rango (24 h, 7 días, 30 días). Necesita internet: Tailwind, Alpine.js, Chart.js y Lucide se
-cargan por CDN; sin conexión la página muestra un aviso.
+rango (24 h, 7 días, 30 días). **Funciona sin internet**: Tailwind, Alpine.js, Chart.js, Lucide e
+Inter se sirven desde `monitoreo/static/vendor/`, con versión, origen, SHA-256 y licencia en su
+`MANIFIESTO.json` ([ADR-0003](docs/adr/ADR-0003-frontend-sin-internet.md)).
 
 Para revisar los datos en el admin de Django (`/admin/`): `uv run python manage.py createsuperuser`.
 
 ## Datos y supuestos
 
-`seed_amalfi_data` borra y regenera, en una transacción, los últimos 30 días de datos horarios
-(720 horas que terminan en la última hora completa), sus segmentos de demanda, predicciones y
-anomalías, el resumen financiero y el flujo de caja a 25 años.
+`seed_amalfi_data` borra y regenera, en una transacción, 30 días de datos horarios (720 horas que
+terminan en `--hasta`), sus segmentos de demanda, predicciones y anomalías, el resumen financiero
+y el flujo de caja a 25 años.
 
-- **Opciones:** `--dias` (mínimo 14, por defecto 30) y `--semilla` (por defecto 42).
+- **Opciones:** `--dias` (mínimo 14, por defecto 30), `--semilla` (por defecto 42) y `--hasta`
+  (última hora de la ventana, ISO 8601: `2026-10-28T14:00`, o con zona `…-05:00`; sin zona es hora
+  de Bogotá; por defecto `FECHA_FIN_DEFAULT`).
 - **Supuestos editables:** todos los parámetros financieros, ambientales y de la planta están
   documentados en la cabecera de
   [`seed_amalfi_data.py`](proyecto_energia/monitoreo/management/commands/seed_amalfi_data.py).
   Si cambia un supuesto, se edita ahí y se vuelve a ejecutar el comando; la API y el dashboard
   leen esos mismos valores. Las pruebas avisan si la TIR sale del rango 14–15 %.
-- **Reproducibilidad:** la misma semilla y la misma hora de inicio dan los mismos datos. Como la
-  ventana termina en la hora actual, sembrar a otra hora desplaza el mes y cambia un poco sus
-  cifras (energías, horas por estado). Los indicadores financieros no dependen de la hora.
+- **Reproducibilidad:** sin argumentos, el comando genera **siempre** la misma ventana
+  (2026-09-28 15:00 → 2026-10-28 14:00) y las mismas cifras, sea cual sea el día en que se
+  ejecute: 546 / 94 / 80 h en estado óptimo / alerta / crítico; 6 324 kWh generados, 4 855
+  demandados, 1 521 vertidos, 216 no suministrados; 8 anomalías; TIR 14,49 %. Una prueba lo
+  exige: si cambia un supuesto a propósito, avisa que el documento escrito también debe cambiar.
 
 ## API
 
@@ -71,13 +76,16 @@ Verificación en navegador real (consola sin errores, 6 pestañas × 3 rangos, e
 ```bash
 uv run playwright install chromium
 uv run python scripts/verificar_consola.py
+uv run python scripts/verificar_consola.py --offline
 ```
 
 El script levanta su propio servidor (necesita la base sembrada) y termina con código 1 ante
 cualquier error o aviso de consola, petición fallida, pestaña o rango faltante, gráfico sin
-valores, valor vacío en pantalla («—», «NaN») o scroll horizontal. El único aviso permitido es el del
-CDN de Tailwind («should not be used in production»), aceptado para el MVP. Con
-`--control-negativo` inyecta errores a propósito y **debe fallar**.
+valores, valor vacío en pantalla («—», «NaN»), restos de plantilla sin renderizar o scroll
+horizontal. **`--offline` bloquea toda petición que no sea al servidor local**: es la prueba de que
+el dashboard funciona sin internet. El único aviso permitido es el del script de Tailwind («should
+not be used in production»), aceptado para el MVP. Con `--control-negativo` inyecta errores a
+propósito (y, con `--offline`, una petición externa) y **debe fallar**.
 
 ### Chromium sin sudo (WSL / Linux)
 

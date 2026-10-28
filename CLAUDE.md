@@ -11,7 +11,7 @@ Aplicación web monolítica en Django para el monitoreo, gestión de demanda, al
 ## 3. Stack Tecnológico y Reglas de UI/UX
 - **Backend:** Python 3.11+ y Django 5.x[cite: 1].
 - **Base de Datos:** SQLite para desarrollo local (preparado en ORM para migrar a PostgreSQL)[cite: 1].
-- **Frontend:** Django Templates + **TailwindCSS (vía CDN)** + **Alpine.js (vía CDN)** para interactividad ligera de pestañas/filtros + **Chart.js (vía CDN)** para visualización de datos[cite: 1] + **Lucide Icons** (o Heroicons).
+- **Frontend:** Django Templates + **TailwindCSS** + **Alpine.js** para interactividad ligera de pestañas/filtros + **Chart.js** para visualización de datos[cite: 1] + **Lucide Icons** (o Heroicons). Todas **servidas localmente** desde `monitoreo/static/vendor/` (versión, origen y SHA-256 en su `MANIFIESTO.json`), sin CDN ni paso de compilación, para operar sin internet en la ZNI ([ADR-0003](docs/adr/ADR-0003-frontend-sin-internet.md)).
 - **Estilo Visual:** Diseño moderno tipo SaaS energético (estilo Clean/Dark-Sidebar o Slate/Emerald palette). Tarjetas con bordes sutiles (`border-slate-200`), sombras suaves (`shadow-sm`), tipografía `Inter` y colores semánticos claros (Esmeralda para generación/óptimo, Ámbar para alerta/irradiancia, Índigo/Azul para demanda, Rojo para crítico/anomalías).
 
 ## 4. Estructura del Proyecto y Esquema de Base de Datos (4 Bloques)

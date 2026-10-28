@@ -70,3 +70,4 @@ una línea suelta desde la raíz.)
 | [OT-0005](feat/OT-0005-api-dashboard-data.md) | feat | Vista del dashboard y endpoint `/api/dashboard-data/` | OT-0004 | Hecho |
 | [OT-0006](feat/OT-0006-frontend-seis-modulos.md) | feat | Frontend del dashboard: 6 módulos | OT-0005 | Hecho |
 | [OT-0007](chore/OT-0007-verificacion-integral-mvp.md) | chore | Verificación integral del MVP (consola, vistas, datos) | OT-0006 | Hecho |
+| [OT-0008](feat/OT-0008-reproducibilidad-y-modo-offline.md) | feat | Reproducibilidad de fechas y modo offline ZNI | OT-0007 | En revisión |

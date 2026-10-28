@@ -1,10 +1,11 @@
 """Siembra datos sintéticos físicamente coherentes de la microrred de Amalfi (ADR-0001).
 
-    uv run python manage.py seed_amalfi_data [--dias 30] [--semilla 42]
+    uv run python manage.py seed_amalfi_data [--dias 30] [--semilla 42] [--hasta 2026-10-28T14:00]
 
-Borra los datos previos y genera, en una sola transacción, las horas de los últimos N días
-(hasta la última hora completa), sus segmentos de demanda, predicciones y anomalías, el
-resumen financiero y el flujo de caja de 25 años.
+Borra los datos previos y genera, en una sola transacción, las horas de los N días que terminan
+en `--hasta` (por defecto FECHA_FIN_DEFAULT), sus segmentos de demanda, predicciones y anomalías,
+el resumen financiero y el flujo de caja de 25 años. Sin argumentos, las cifras son siempre las
+mismas: las del documento escrito (OT-0008).
 
 ╔════════════════════════════════════════════════════════════════════════════════════════╗
 ║  SUPUESTOS DEL CASO DE ESTUDIO — única fuente de verdad                                  ║
@@ -15,7 +16,8 @@ resumen financiero y el flujo de caja de 25 años.
 ╚════════════════════════════════════════════════════════════════════════════════════════╝
 """
 
-from datetime import timedelta
+import re
+from datetime import datetime, timedelta
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
@@ -70,6 +72,10 @@ UMBRAL_OPTIMO_PCT = 40.0  # SoC ≥ 40 % → OPTIMO
 UMBRAL_ALERTA_PCT = 25.0  # 25 % ≤ SoC < 40 % → ALERTA; < 25 % → CRITICO
 
 # ── Ventana de datos ────────────────────────────────────────────────────────────────────────
+# Última hora de la ventana (inclusiva), en hora de Bogotá. Fija para que el comando sin
+# argumentos reproduzca siempre las cifras del documento escrito: 2026-09-28 15:00 → 2026-10-28
+# 14:00, las de la bitácora de OT-0004. Se cambia aquí o con --hasta.
+FECHA_FIN_DEFAULT = "2026-10-28T14:00"
 DIAS_POR_DEFECTO = 30
 DIAS_MINIMOS = 14  # menos días no dejan fechas suficientes para 6–8 anomalías y el frente
 SEMILLA_POR_DEFECTO = 42
@@ -109,11 +115,32 @@ FINANZAS = calculos.ParametrosFinancieros(
 TAMANO_LOTE = 1000
 
 
-def inicio_de_ventana(dias: int):
-    """Primera hora de la ventana que termina en la última hora completa (hora local)."""
-    ahora = timezone.localtime()
-    ultima_completa = ahora.replace(minute=0, second=0, microsecond=0) - timedelta(hours=1)
-    return ultima_completa - timedelta(hours=dias * 24 - 1)
+# AAAA-MM-DDTHH:MM (o con espacio), segundos y zona opcionales. Gramática ASCII explícita:
+# datetime.fromisoformat acepta más formatos de los que este comando documenta.
+PATRON_HASTA = re.compile(
+    r"[0-9]{4}-[0-9]{2}-[0-9]{2}[T ][0-9]{2}:[0-9]{2}(:[0-9]{2})?(Z|[+-][0-9]{2}:[0-9]{2})?"
+)
+
+
+def fin_de_ventana(texto: str) -> datetime:
+    """Última hora de la ventana, *aware* en hora local. Sin zona se lee como hora de Bogotá; con
+    zona, se convierte. Se trunca a la hora en punto: los registros son horarios."""
+    try:
+        if not PATRON_HASTA.fullmatch(texto):
+            raise ValueError(texto)
+        momento = datetime.fromisoformat(texto)
+    except ValueError as error:
+        raise CommandError(
+            f"--hasta debe ser AAAA-MM-DDTHH:MM, con zona opcional (recibido: {texto!r})."
+        ) from error
+    if timezone.is_naive(momento):
+        momento = timezone.make_aware(momento)
+    return timezone.localtime(momento).replace(minute=0, second=0, microsecond=0)
+
+
+def inicio_de_ventana(dias: int, fin: datetime) -> datetime:
+    """Primera hora de la ventana de `dias` días que termina (inclusive) en `fin`."""
+    return fin - timedelta(hours=dias * 24 - 1)
 
 
 class Command(BaseCommand):
@@ -122,14 +149,21 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--dias", type=int, default=DIAS_POR_DEFECTO)
         parser.add_argument("--semilla", type=int, default=SEMILLA_POR_DEFECTO)
+        parser.add_argument(
+            "--hasta",
+            default=FECHA_FIN_DEFAULT,
+            help=f"Última hora de la ventana, ISO 8601 (por defecto {FECHA_FIN_DEFAULT}).",
+        )
 
-    def handle(self, *args, dias, semilla, **options):
+    def handle(self, *args, dias, semilla, hasta, **options):
         if dias < DIAS_MINIMOS:
             raise CommandError(f"--dias debe ser al menos {DIAS_MINIMOS}.")
         try:
-            escenario = simulacion.generar_escenario(
-                inicio_de_ventana(dias), dias * 24, semilla, PLANTA
-            )
+            inicio = inicio_de_ventana(dias, fin_de_ventana(hasta))
+        except OverflowError as error:  # p. ej. --hasta 0001-01-01T00:00: la ventana no cabe
+            raise CommandError(f"--hasta fuera del rango admitido: {hasta!r}.") from error
+        try:
+            escenario = simulacion.generar_escenario(inicio, dias * 24, semilla, PLANTA)
         except ValueError as error:
             raise CommandError(f"{error} (semilla {semilla}).") from error
         filas = calculos.flujo_de_caja(FINANZAS)

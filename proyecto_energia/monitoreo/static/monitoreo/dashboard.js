@@ -9,7 +9,7 @@
 (() => {
   "use strict";
 
-  // Sin Chart.js (CDN inaccesible) no hay nada que dibujar: base.html muestra el aviso y aquí
+  // Sin Chart.js (archivo estático no servido) no hay nada que dibujar: base.html muestra el aviso y aquí
   // se retira el componente antes de que Alpine lo recorra, para no llenar la consola de
   // errores de expresiones sin componente.
   if (!window.Chart) {
