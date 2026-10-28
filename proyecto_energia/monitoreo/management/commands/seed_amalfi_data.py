@@ -35,12 +35,13 @@ HORIZONTE_ANIOS = 25
 # Calibrado para que la TIR quede en ≈ 14,5 % (aritmética en la bitácora de OT-0004).
 CAPEX_COP = 1_150_000_000
 OPEX_FRACCION_CAPEX = 0.015  # O&M anual = 1,5 % del CAPEX en el año 1
-INFLACION_OPEX = 0.03  # crecimiento anual del O&M (real vs. nominal: ver OT-0004 §8)
+INFLACION_OPEX = 0.03  # crecimiento anual REAL del O&M (sobre la inflación; logística ZNI)
 REEMPLAZO_BATERIAS_COP = 130_000_000
 ANIO_REEMPLAZO_BATERIAS = 10
 # Costo evitado de generar con diésel en la ZNI (combustible + transporte + O&M del grupo).
 COSTO_DIESEL_EVITADO_COP_KWH = 3_000  # año 1; aprobado por el lead
-ESCALAMIENTO_DIESEL = 0.03  # crecimiento anual del costo del diésel
+# Escalamientos en términos REALES, coherentes con la TSD (tasa real); decisión del lead.
+ESCALAMIENTO_DIESEL = 0.03  # crecimiento anual real del costo del diésel en ZNI
 # Energía servida en el año 1; se contrasta con el mes simulado (prueba de ±15 %).
 ENERGIA_ANUAL_SERVIDA_KWH = 56_500
 # 0,5 %/año, típico de fabricante. Se aplica a la energía servida aunque hoy se vierte ~24 % de
