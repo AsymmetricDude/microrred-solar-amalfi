@@ -74,6 +74,8 @@ a `now()`, una base sembrada hace dos días devolvería «últimas 24 h» vacía
   `payback_anios` = primer año con acumulado ≥ 0, interpolado;
   `costo_nivelado_diesel_cop_kwh` = referencia contra la que se compara el LCOE (OT-0004 §4.8).
 - **Métricas** MAE/RMSE/R² **sobre el rango pedido**, con `analitica/services.py` (OT-0004).
+- **Orden explícito:** `ConsumoPorSegmento` y `PrediccionYAnomalia` no tienen `ordering` por
+  defecto (OT-0003); cada consulta pide `order_by("registro__timestamp")` cuando lo necesita.
 - **Consultas:** registros + `select_related("analitica")`; segmentos en **una** consulta
   `values()` sobre el rango; financiero en dos. Sin N+1. Se mide con `assertNumQueries`.
 - Floats redondeados (2 decimales) para un JSON limpio; dinero como enteros.
