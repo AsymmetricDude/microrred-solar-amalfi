@@ -68,5 +68,5 @@ una línea suelta desde la raíz.)
 | [OT-0003](feat/OT-0003-modelos-y-migraciones.md) | feat | Implementar los 5 modelos y sus migraciones | OT-0002 | Hecho |
 | [OT-0004](feat/OT-0004-generador-datos-sinteticos.md) | feat | Generador de datos sintéticos `seed_amalfi_data` | OT-0003 | Hecho |
 | [OT-0005](feat/OT-0005-api-dashboard-data.md) | feat | Vista del dashboard y endpoint `/api/dashboard-data/` | OT-0004 | Hecho |
-| [OT-0006](feat/OT-0006-frontend-seis-modulos.md) | feat | Frontend del dashboard: 6 módulos | OT-0005 | En revisión |
-| [OT-0007](chore/OT-0007-verificacion-integral-mvp.md) | chore | Verificación integral del MVP (consola, vistas, datos) | OT-0006 | Por hacer |
+| [OT-0006](feat/OT-0006-frontend-seis-modulos.md) | feat | Frontend del dashboard: 6 módulos | OT-0005 | Hecho |
+| [OT-0007](chore/OT-0007-verificacion-integral-mvp.md) | chore | Verificación integral del MVP (consola, vistas, datos) | OT-0006 | En revisión |
