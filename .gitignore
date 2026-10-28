@@ -1,0 +1,16 @@
+# Entorno
+.venv/
+__pycache__/
+*.pyc
+.ruff_cache/
+
+# Base de datos local (se regenera con migrate + seed_amalfi_data)
+db.sqlite3
+*.sqlite3-journal
+
+# Secretos
+.env
+.env.*
+
+# Artefactos de verificación
+scripts/capturas/
