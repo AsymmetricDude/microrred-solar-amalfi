@@ -63,8 +63,8 @@ uv run ruff check . && uv run ruff format --check . \
 
 | OT | Tipo | Título | Depende de | Estado |
 |---|---|---|---|---|
-| [OT-0001](chore/OT-0001-montar-arnes-ligero.md) | chore | Montar el arnés ligero de OT y definir el plan por fases | — | En revisión |
-| [OT-0002](chore/OT-0002-inicializar-proyecto-django.md) | chore | Inicializar entorno uv, proyecto Django y 3 apps | OT-0001 | Por hacer |
+| [OT-0001](chore/OT-0001-montar-arnes-ligero.md) | chore | Montar el arnés ligero de OT y definir el plan por fases | — | Hecho |
+| [OT-0002](chore/OT-0002-inicializar-proyecto-django.md) | chore | Inicializar entorno uv, proyecto Django y 3 apps | OT-0001 | En curso |
 | [OT-0003](feat/OT-0003-modelos-y-migraciones.md) | feat | Implementar los 5 modelos y sus migraciones | OT-0002 | Por hacer |
 | [OT-0004](feat/OT-0004-generador-datos-sinteticos.md) | feat | Generador de datos sintéticos `seed_amalfi_data` | OT-0003 | Por hacer |
 | [OT-0005](feat/OT-0005-api-dashboard-data.md) | feat | Vista del dashboard y endpoint `/api/dashboard-data/` | OT-0004 | Por hacer |

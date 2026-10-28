@@ -29,7 +29,7 @@ de invariantes físicas y financieras lo comprueba.
 - Lógica pura (sin ORM, testeable) separada del comando:
   - `monitoreo/simulacion.py` — clima, irradiancia, temperaturas, generación, demanda por segmento, batería.
   - `analitica/services.py` — predicción mock, inyección y detección de anomalías, métricas MAE/RMSE/R².
-  - `financiero/parametros.py` — **única fuente** de los parámetros técnico-económicos.
+  - Cabecera de `seed_amalfi_data.py` — **única fuente** de los parámetros técnico-económicos (decisión del lead, §4.8).
   - `financiero/calculos.py` — flujo de caja, VPN, TIR (bisección), LCOE, payback.
 - `monitoreo/management/commands/seed_amalfi_data.py`: borra lo previo y persiste todo en
   **una transacción** con `bulk_create`. Opciones: `--dias` (30), `--semilla` (42).
@@ -102,7 +102,12 @@ de invariantes físicas y financieras lo comprueba.
 - `es_anomalia` lo fija el detector, no la inyección: así la tabla muestra lo que un sistema
   real vería.
 
-### 4.8 Financiero (`financiero/parametros.py` + `calculos.py`)
+### 4.8 Financiero (constantes en `seed_amalfi_data.py` + `financiero/calculos.py`)
+> **Decisión del lead (2026-10-28):** todas las variables financieras y ambientales se
+> declaran como **constantes documentadas en la parte superior de `seed_amalfi_data.py`**
+> (no en `financiero/parametros.py`), para que la autora las ajuste en un solo lugar. Esa
+> cabecera es la **única fuente**: la API (OT-0005) las importa de ahí. Lo mismo para los
+> parámetros físicos de la planta (kWp, kWh de batería, umbrales de SoC).
 - Año 0: `flujo_neto = −CAPEX`. Años 1–25:
   - `ingresos_ahorro = E_anual · costo_diesel_evitado · (1+esc)^(t−1) · (1−deg)^(t−1)`
   - `costos_om = OPEX · (1+infl)^(t−1)` **+ reemplazo de baterías en el año 10**
@@ -111,22 +116,28 @@ de invariantes físicas y financieras lo comprueba.
   `LCOE = (CAPEX + Σ VP(costos)) / Σ VP(energía)`.
 - Parámetros iniciales a calibrar en la Fase 6 (los valores finales y la aritmética van a la bitácora):
 
-  | Parámetro | Propuesta | Clase de evidencia |
+  | Constante | Valor | Clase de evidencia |
   |---|---|---|
-  | CAPEX (50 kWp + 120 kWh + red + logística ZNI) | ≈ COP 1 100–1 200 M | afirmado, a calibrar |
-  | OPEX anual | ≈ 1,5 % del CAPEX | afirmado |
-  | Reemplazo baterías año 10 | ≈ COP 130 M | afirmado |
-  | Costo diésel evitado | ≈ COP 3 000 /kWh | afirmado — fuente pendiente (IPSE/CREG) |
-  | Escalamiento diésel / inflación OPEX | 3 % / 3 % | afirmado |
-  | Degradación FV | 0,5 %/año | afirmado (típico de fabricante) |
-  | Factor de emisión diésel | 0,80 kgCO₂/kWh (2,68 kg/L × 0,30 L/kWh) | derivado de afirmados |
-  | Tasa de descuento | **10 %** | **pregunta abierta §8** |
-  | Energía anual servida | ≈ 56 MWh | se contrasta con el mes simulado ×365/30 (±15 %) |
-- **Meta:** TIR ∈ [14,0 %, 15,0 %], VPN > 0, LCOE < costo diésel evitado. Se calibra **el
-  CAPEX** (no la TIR) hasta cumplirla, y se escribe la aritmética.
+  | `CAPEX_COP` (50 kWp + 120 kWh + red + logística ZNI) | ≈ COP 1 150 M | afirmado, calibrado a la TIR meta |
+  | `OPEX_FRACCION_CAPEX` | 1,5 % del CAPEX | afirmado |
+  | `REEMPLAZO_BATERIAS_COP` / `ANIO_REEMPLAZO_BATERIAS` | COP 130 M / año 10 | afirmado |
+  | `COSTO_DIESEL_EVITADO_COP_KWH` | 3 000 COP/kWh (año 1) | afirmado — **aprobado por el lead** |
+  | `ESCALAMIENTO_DIESEL` / `INFLACION_OPEX` | 3 % / 3 % | afirmado |
+  | `DEGRADACION_FV_ANUAL` | 0,5 %/año | afirmado (típico de fabricante) |
+  | `FACTOR_EMISION_KGCO2_KWH` | 0,80 (2,68 kg/L × 0,30 L/kWh) | derivado de afirmados — **aprobado por el lead** |
+  | `TASA_DESCUENTO` | **12 % E.A.** (referencia TSD del DNP) | **decisión del lead** |
+  | `ENERGIA_ANUAL_SERVIDA_KWH` | ≈ 56 500 kWh | se contrasta con el mes simulado ×365/30 (±15 %) |
+- **Comparación LCOE vs. diésel, con la misma vara:** el LCOE solar se compara con el **costo
+  nivelado del diésel** (3 000 COP/kWh escalando 3 %/año, descontado al mismo 12 % y con la
+  misma energía), no con el precio del año 1. Comparar un costo nivelado con uno de año 1
+  mezcla magnitudes distintas. Se calcula en `calculos.py` y se expone en la API.
+- **Meta:** TIR ∈ [14,0 %, 15,0 %], VPN > 0 al 12 %, LCOE < costo nivelado del diésel. Se
+  calibra **el CAPEX** (no la TIR) y se escribe la aritmética.
 
 ## 5. Plan por fases
-- [ ] **Fase 1 —** `financiero/parametros.py` con constantes nombradas y unidades.
+- [x] **Fase 0 —** Decisiones del lead (2026-10-28): tasa 12 % E.A.; diésel 3 000 COP/kWh;
+      factor 0,8 kgCO₂/kWh; constantes en la cabecera del seeder.
+- [ ] **Fase 1 —** Cabecera de constantes de `seed_amalfi_data.py` (nombre, valor, unidad y fuente en cada una).
 - [ ] **Fase 2 —** `simulacion.py`: clima + irradiancia + temperaturas + generación, con pruebas.
 - [ ] **Fase 3 —** `simulacion.py`: demanda por segmento, con pruebas de perfiles.
 - [ ] **Fase 4 —** `analitica/services.py`: inyección, predicción, detector, métricas, con pruebas.
@@ -148,8 +159,8 @@ de invariantes físicas y financieras lo comprueba.
 - [ ] Error de predicción ∈ [3 %, 8 %] en horas normales con valor > 0.
 - [ ] 6–8 anomalías; detectadas == inyectadas.
 - [ ] 26 filas de flujo; acumulado = suma corrida; pico de costos en el año 10;
-      TIR recalculada del flujo == `tir_porcentaje` (±0,01) y ∈ [14, 15]; VPN > 0;
-      LCOE < costo diésel evitado.
+      TIR recalculada del flujo == `tir_porcentaje` (±0,01) y ∈ [14, 15]; VPN > 0 al 12 %;
+      LCOE < costo nivelado del diésel.
 - [ ] `verify` en verde; comando ejecutado con su resumen en la bitácora.
 
 ## 7. Checklist de cumplimiento
@@ -157,10 +168,9 @@ Sin magic numbers: toda constante física/económica con nombre y unidad · lóg
 ninguna cifra financiera tecleada que pueda calcularse del flujo.
 
 ## 8. Riesgos y rollback
-- **Pregunta abierta — tasa de descuento:** propongo 10 %. ¿La autora del trabajo usa otra
-  (p. ej., la tasa social de descuento del DNP)?
-- **Pregunta abierta — parámetros económicos:** CAPEX, costo del diésel y factor de emisión son
-  *afirmados*. ¿Hay cifras del trabajo de grado que deban usarse en su lugar?
+- **Resuelto (2026-10-28):** tasa 12 % E.A.; diésel 3 000 COP/kWh y 0,8 kgCO₂/kWh aprobados.
+  Siguen siendo *afirmados*: si la autora actualiza un supuesto, se cambia la constante y se
+  vuelve a correr el seeder; las pruebas de §6 dicen si la TIR sale de [14, 15].
 - **Riesgo:** con ciertos climas el SoC nunca baja de 25 % → el frente lluvioso forzado lo
   garantiza y la prueba lo exige.
 - **Rollback:** borrar la rama; `seed_amalfi_data` es idempotente.
@@ -169,3 +179,4 @@ ninguna cifra financiera tecleada que pueda calcularse del flujo.
 | Fecha | SHA | Nota |
 |---|---|---|
 | 2026-10-28 | — | **Pre-calibración (medido, script de borrador, no el código final):** con E = 56 500 kWh, diésel 3 000 COP/kWh, esc. 3 %, deg. 0,5 %, OPEX 1,5 % CAPEX, reemplazo 130 M en año 10, r = 10 %: CAPEX 1 100 M → TIR 15,24 %, VPN 531 M, LCOE 2 712; **CAPEX 1 150 M → TIR 14,49 %, VPN 472 M, LCOE 2 830, payback año 8**; CAPEX 1 200 M → TIR 13,80 %. Ojo: el margen LCOE vs. diésel es estrecho (≈ 6 %); si el diésel real de la zona es más caro, el margen crece. |
+| 2026-10-28 | — | **Recalculado con r = 12 % (decisión del lead), mismo script:** la TIR no depende de r (CAPEX 1 150 M → 14,49 %); VPN 228 M; LCOE 2 830 → **3 173 COP/kWh**, que ya **supera** los 3 000 del año 1. Comparado con el **costo nivelado del diésel** al 12 % (3 000 escalando 3 %, misma energía) = **3 705 COP/kWh** → el solar es ≈ 14 % más barato. Se adopta esa comparación (§4.8). |

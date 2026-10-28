@@ -39,6 +39,9 @@ navegador, con la evidencia anotada.
 
 ## 4. Diseño / enfoque técnico
 - Script `scripts/verificar_consola.py` (Playwright) — reproducible, no un clic manual.
+- **Única excepción permitida:** el aviso del Play CDN de Tailwind («should not be used in
+  production»), aceptado por el lead (2026-10-28). Se filtra por su texto exacto, no por nivel,
+  para que cualquier otro aviso o error sí cuente.
 - **Control negativo:** el script debe **fallar** si se inyecta un error de JS a propósito;
   si no falla, no está midiendo nada (bóveda: *Framework_Evidencia_Medida_vs_Afirmada*).
 - Si Chromium no puede correr en este WSL, plan B: el lead abre el dashboard en Windows

@@ -53,11 +53,11 @@ inicial; sección de proceso en `CLAUDE.md`.
 - [x] **Fase 2 —** Decisiones del lead: arnés ligero con git local; entorno con `uv`.
 - [x] **Fase 3 —** Índice, plantilla, ADR-0001, ADR-0002, OT-0002…OT-0007.
 - [x] **Fase 4 —** `git init`, `.gitignore`, commit inicial.
-- [ ] **Fase 5 —** El lead revisa las OT y responde las preguntas abiertas (§8 de cada OT).
+- [x] **Fase 5 —** El lead revisa las OT y responde las preguntas abiertas (§8 de cada OT).
 
 ## 6. Criterios de aceptación
-- [ ] Cada punto 1–6 del plan tiene su OT con §4 (diseño) y §5 (fases) completos.
-- [ ] El lead aprueba el plan (o pide cambios) antes de iniciar OT-0002.
+- [x] Cada punto 1–6 del plan tiene su OT con §4 (diseño) y §5 (fases) completos.
+- [x] El lead aprueba el plan (o pide cambios) antes de iniciar OT-0002.
 
 ## 7. Checklist de cumplimiento
 Sin secretos; documentación en español, coherente con `CLAUDE.md`.
@@ -71,3 +71,5 @@ Sin secretos; documentación en español, coherente con `CLAUDE.md`.
 |---|---|---|
 | 2026-10-28 | — | Leída la bóveda: `Arnes_de_OT_con_Agentes`, `Plantilla_de_OT`, `00_Kit_de_Arranque_de_Proyecto`, `Artefacto_Documentos_del_Hub_de_OT`, `Trabajar_con_Agentes_de_Codigo`, `Framework_Evidencia_Medida_vs_Afirmada`; y la estructura real de `~/cuentas-claras/cuentas-claras-ot`. |
 | 2026-10-28 | — | Lead decide: arnés ligero + git local (sin GitHub por ahora) y `uv`. Medido: Python 3.12.3, uv 0.11.32. |
+| 2026-10-28 | d9de193 | Commit inicial del arnés y del plan. |
+| 2026-10-28 | — | Lead aprueba el plan y resuelve las 4 preguntas: tasa 12 % E.A. (con LCOE comparado contra el diésel nivelado, ver OT-0004 §9); diésel 3 000 COP/kWh y 0,8 kgCO₂/kWh como constantes en la cabecera del seeder; FK/O2O `registro`; aviso de Tailwind CDN aceptado. |

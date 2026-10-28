@@ -34,7 +34,7 @@ consola del navegador y usable a 1 280 px y a 390 px de ancho.
   | 3 | Demanda | Curva de carga **apilada** por segmento · tarjeta de demanda pico · dona de participación |
   | 4 | Almacenamiento | SoC % con **bandas** (verde ≥ 40, ámbar 25–40, rojo < 25) · potencia carga/descarga (kW, ±) · KPI autonomía |
   | 5 | Analítica e IA | Real vs. predicción (generación y demanda) con anomalías marcadas · MAE/RMSE/R² · tabla de anomalías (fecha, hora, tipo, diagnóstico) |
-  | 6 | Financiero | Tarjetas CAPEX, OPEX, VPN, TIR, LCOE · barras (flujo neto) + línea (acumulado) a 25 años con **marca del payback** |
+  | 6 | Financiero | Tarjetas CAPEX, OPEX, VPN (al 12 %), TIR, LCOE vs. costo nivelado del diésel · barras (flujo neto) + línea (acumulado) a 25 años con **marca del payback** |
 - Rótulo visible «Datos sintéticos — caso de estudio» (ADR-0001).
 - Estados de carga, error y base vacía.
 
@@ -84,7 +84,8 @@ Tailwind/Alpine/Chart.js **por CDN** (`CLAUDE.md` §3) · Inter · `border-slate
 ## 8. Riesgos y rollback
 - **Riesgo:** el Play CDN de Tailwind avisa en consola que no es para producción. → Es la
   herramienta que exige `CLAUDE.md`; en OT-0007 se distingue ese *warning* (esperado) de
-  errores reales. **Pregunta abierta:** ¿aceptas ese aviso o prefieres compilar Tailwind?
+  errores reales. **Resuelto (2026-10-28):** el lead acepta el aviso como esperado; sin Node
+  ni compilación de CSS en esta fase (entorno 100 % Python/Django).
 - **Rollback:** borrar la rama.
 
 ## 9. Bitácora

@@ -42,7 +42,7 @@ generador y sus pruebas).
 | `ResumenFinanciero` | `capex_cop` · `opex_anual_cop` · `vpn_cop` · `tir_porcentaje` · `lcoe_cop_kwh` · `ahorro_anual_diesel_cop` · `toneladas_co2_evitadas_anual` | «Registro único»: lo garantiza el seed (borra y crea uno) + método de clase `actual()`; sin singleton mágico |
 | `FlujoCajaAnual` | `anio` (unique) · `ingresos_ahorro_cop` · `costos_om_cop` · `flujo_neto_cop` · `flujo_acumulado_cop` | `ordering=["anio"]` |
 
-- **Nombre de la FK:** `CLAUDE.md` no lo da; se propone `registro` en ambos (pregunta abierta §8).
+- **Nombre de la FK/O2O:** `registro` en ambos — **aprobado por el lead (2026-10-28)**.
 - **Dinero en `BigIntegerField`** (pesos enteros) como pide `CLAUDE.md`; `lcoe_cop_kwh` y
   `tir_porcentaje` son `FloatField` por especificación.
 - Migraciones generadas por Django, sin editar a mano.
@@ -64,7 +64,7 @@ generador y sus pruebas).
 Nombres exactos de `CLAUDE.md` · ORM portable a PostgreSQL (nada específico de SQLite).
 
 ## 8. Riesgos y rollback
-- **Pregunta abierta:** ¿nombre de la FK/O2O? Propuesta: `registro`.
+- **Resuelto (2026-10-28):** FK/O2O se llaman `registro`.
 - **Rollback:** borrar la rama y `db.sqlite3`.
 
 ## 9. Bitácora

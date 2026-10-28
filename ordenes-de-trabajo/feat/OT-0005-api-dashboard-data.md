@@ -60,6 +60,7 @@ a `now()`, una base sembrada hace dos días devolvería «últimas 24 h» vacía
                 "anomalias": [{"timestamp": "...", "tipo": "...", "descripcion": "...",
                                "real_kwh": 0, "predicho_kwh": 0, "desviacion_pct": 0}]},
   "financiero": {"resumen": {"capex_cop": 0, "...": 0}, "payback_anios": 0,
+                 "tasa_descuento_pct": 12, "costo_nivelado_diesel_cop_kwh": 0,
                  "flujo": [{"anio": 0, "ingresos_ahorro_cop": 0, "costos_om_cop": 0,
                             "flujo_neto_cop": 0, "flujo_acumulado_cop": 0}]}
 }
@@ -67,10 +68,11 @@ a `now()`, una base sembrada hace dos días devolvería «últimas 24 h» vacía
 - **Granularidad:** horaria siempre (≤ 720 puntos; Chart.js los maneja). Una sola ruta de
   código, sin agregación condicional.
 - **KPIs derivados** (se documenta la fórmula en el código):
-  `ahorro_cop` y `co2_evitado_t` = energía servida en el rango × parámetros de
-  `financiero/parametros.py` (misma fuente que el modelo financiero, no se duplican);
+  `ahorro_cop` y `co2_evitado_t` = energía servida en el rango × constantes importadas de
+  la cabecera de `seed_amalfi_data.py` (única fuente por decisión del lead, OT-0004 §4.8);
   `vertimiento` / `energia_no_suministrada` = residuo del balance horario (OT-0004 §4.6);
-  `payback_anios` = primer año con acumulado ≥ 0, interpolado.
+  `payback_anios` = primer año con acumulado ≥ 0, interpolado;
+  `costo_nivelado_diesel_cop_kwh` = referencia contra la que se compara el LCOE (OT-0004 §4.8).
 - **Métricas** MAE/RMSE/R² **sobre el rango pedido**, con `analitica/services.py` (OT-0004).
 - **Consultas:** registros + `select_related("analitica")`; segmentos en **una** consulta
   `values()` sobre el rango; financiero en dos. Sin N+1. Se mide con `assertNumQueries`.
